@@ -6,46 +6,39 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// ⚠️ Replace with your real API key or make sure it's set in your environment
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "AIzaSyBhhL5KgVLuQCRPEh7_WU0XCwB6U8LwdcE");
 
-// Create a shared chat session per user (memory in-session)
-const chatSessions = {};
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 app.post("/ask", async (req, res) => {
   const userMessage = req.body.message;
-  const sessionId = req.body.sessionId || "default"; // Optional client-provided session ID
+
+  if (!userMessage) {
+    return res.status(400).json({ error: "No message provided" });
+  }
 
   try {
-    // Create a new chat session if not exists
-    if (!chatSessions[sessionId]) {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-      const chat = model.startChat({
-        history: [], // Start with empty history
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2048,
-        },
-      });
-
-      chatSessions[sessionId] = chat;
-    }
-
-    const chat = chatSessions[sessionId];
-    const result = await chat.sendMessage(userMessage);
+    const result = await model.generateContent(userMessage);
     const response = result.response;
     const text = response.text();
 
+    if (!text) {
+      return res.json({ text: "❗ I couldn't generate a response." });
+    }
+
     res.json({ text });
   } catch (err) {
-    console.error("Gemini error:", err);
-    res.status(500).json({ error: "Something went wrong on the server." });
+    console.error("Gemini API error:", err);
+    res.status(500).json({ text: "❗ Something went wrong. Please try again later." });
   }
 });
 
 app.get("/", (req, res) => {
-  res.send("✅ Gemini Backend with Memory Running for PathakGPT");
+  res.send("✅ PathakGPT Gemini backend is running!");
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
