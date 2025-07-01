@@ -8,20 +8,31 @@ app.use(express.json());
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Create a shared chat session per user (memory in-session)
 const chatSessions = {};
 
 app.post("/ask", async (req, res) => {
-  const userMessage = req.body.message;
-  const sessionId = req.body.sessionId || "default"; // Optional client-provided session ID
+  const userMessage = req.body.message.toLowerCase();
+  const sessionId = req.body.sessionId || "default";
+
+  // Check for custom identity questions
+  if (
+    userMessage.includes("who created you") ||
+    userMessage.includes("who developed you") ||
+    userMessage.includes("who made you") ||
+    userMessage.includes("what is your name") ||
+    userMessage.includes("what's your name")
+  ) {
+    return res.json({
+      text: "I am PathakGPT. I was developed by Sameer Pathak at Sameer.Inc from Nepal."
+    });
+  }
 
   try {
-    // Create a new chat session if not exists
     if (!chatSessions[sessionId]) {
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const chat = model.startChat({
-        history: [], // Start with empty history
+        history: [],
         generationConfig: {
           temperature: 0.7,
           maxOutputTokens: 2048,
@@ -32,7 +43,7 @@ app.post("/ask", async (req, res) => {
     }
 
     const chat = chatSessions[sessionId];
-    const result = await chat.sendMessage(userMessage);
+    const result = await chat.sendMessage(req.body.message);
     const response = result.response;
     const text = response.text();
 
@@ -44,7 +55,7 @@ app.post("/ask", async (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.send("✅ Gemini Backend with Memory Running for PathakGPT");
+  res.send("✅ Gemini Backend with Memory + Custom Identity Running for PathakGPT");
 });
 
 const PORT = process.env.PORT || 3000;
