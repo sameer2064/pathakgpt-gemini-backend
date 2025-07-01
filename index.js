@@ -6,9 +6,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ⚠️ Replace with your real API key or make sure it's set in your environment
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "AIzaSyBhhL5KgVLuQCRPEh7_WU0XCwB6U8LwdcE");
-
+const genAI = new GoogleGenerativeAI("AIzaSyBhhL5KgVLuQCRPEh7_WU0XCwB6U8LwdcE");
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 app.post("/ask", async (req, res) => {
