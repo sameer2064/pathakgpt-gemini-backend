@@ -6,22 +6,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const genAI = new GoogleGenerativeAI("AIzaSyDIsZBoA59KpmF2ZTBntWZ8KImvD6FTZiQ");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 app.post("/ask", async (req, res) => {
   const userMessage = req.body.message;
 
-  if (!userMessage) {
-    return res.status(400).json({ text: "❗ No message provided." });
-  }
-
   try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await model.generateContent(userMessage);
     const response = result.response;
     const text = response.text();
 
-    res.json({ text: text || "❗ I couldn't generate a response." });
+    res.json({ text });
   } catch (err) {
     console.error("Gemini API error:", err);
     res.status(500).json({ text: "❗ Something went wrong. Please try again later." });
@@ -29,7 +25,7 @@ app.post("/ask", async (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.send("✅ PathakGPT Gemini backend is running!");
+  res.send("✅ Gemini backend running for PathakGPT");
 });
 
 const PORT = process.env.PORT || 3000;
