@@ -7,7 +7,17 @@ app.use(cors());
 app.use(express.json());
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
+const chat = model.startChat({
+  history: [],
+  generationConfig: {
+    temperature: 0.7,
+    maxOutputTokens: 1024
+  }
+});
+
+// To store conversation history
 let conversationHistory = [];
 
 app.post("/ask", async (req, res) => {
@@ -15,17 +25,6 @@ app.post("/ask", async (req, res) => {
   if (!userMessage) return res.status(400).json({ text: "❗ Invalid input." });
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    if (conversationHistory.length > 10) {
-      conversationHistory = conversationHistory.slice(-10);
-    }
-
-    const chat = model.startChat({
-      history: conversationHistory,
-      generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
-    });
-
     conversationHistory.push({ role: "user", parts: [{ text: userMessage }] });
 
     const result = await chat.sendMessage(userMessage);
@@ -33,7 +32,7 @@ app.post("/ask", async (req, res) => {
 
     conversationHistory.push({ role: "model", parts: [{ text }] });
 
-    // Override response for identity
+    // Custom response override for identity
     if (/who (are|created|developed|made) (you|u)/i.test(userMessage) || /your name/i.test(userMessage)) {
       return res.json({ text: "I am PathakGPT, developed by Sameer Pathak at Sameer Inc. from Nepal." });
     }
