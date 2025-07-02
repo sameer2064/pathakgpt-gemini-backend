@@ -7,40 +7,30 @@ app.use(cors());
 app.use(express.json());
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-const chat = model.startChat({
-  history: [],
-  generationConfig: {
-    temperature: 0.7,
-    maxOutputTokens: 1024
-  }
-});
-
-// To store conversation history
-let conversationHistory = [];
 
 app.post("/ask", async (req, res) => {
   const userMessage = req.body.message;
-  if (!userMessage) return res.status(400).json({ text: "❗ Invalid input." });
 
   try {
-    conversationHistory.push({ role: "user", parts: [{ text: userMessage }] });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const result = await chat.sendMessage(userMessage);
-    const text = result.response.text();
+    // Send a single prompt without history to avoid memory issues
+    const prompt = `
+You are PathakGPT, an AI chatbot developed by Sameer Pathak at Sameer Inc. from Nepal. 
+If anyone asks "who created you", "who developed you", or "who are you", always reply:
+"I am PathakGPT, developed by Sameer Pathak at Sameer Inc. from Nepal."
 
-    conversationHistory.push({ role: "model", parts: [{ text }] });
+Reply to this message: "${userMessage}"
+`;
 
-    // Custom response override for identity
-    if (/who (are|created|developed|made) (you|u)/i.test(userMessage) || /your name/i.test(userMessage)) {
-      return res.json({ text: "I am PathakGPT, developed by Sameer Pathak at Sameer Inc. from Nepal." });
-    }
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const text = response.text();
 
     res.json({ text });
   } catch (err) {
-    console.error("❗ Gemini API error:", err.message, err);
-    res.status(500).json({ text: "❗ Something went wrong. Please try again later." });
+    console.error("Gemini error:", err);
+    res.status(500).json({ text: "❗ Sorry.PathakGPT is experiencing heavy loads. Please try again later." });
   }
 });
 
